@@ -7,14 +7,14 @@ name: demo-dev
 
 ################################################################################
 # trigger this pipeline on commits to the 'main' branch (or on pull requests
-# where the target branch is 'main') when .tf files are changed beneath the
-# 'dev' directory
+# where the target branch is 'main') when files are changed beneath the 'dev'
+# directory
 ################################################################################
 trigger:
   branch:
   - main
   paths:
-  - dev/*.tf
+  - dev/**
 
 ################################################################################
 # remove this 'platform' section if your CPU is amd64 architecture
@@ -112,14 +112,14 @@ name: demo-prod
 
 ################################################################################
 # trigger this pipeline on commits to the 'main' branch (or on pull requests
-# where the target branch is 'main') when .tf files are changed beneath the
-# 'prod' directory
+# where the target branch is 'main') when files are changed beneath the 'prod'
+# directory
 ################################################################################
 trigger:
   branch:
   - main
   paths:
-  - prod/*.tf
+  - prod/**
 
 ################################################################################
 # remove this 'platform' section if your CPU is amd64 architecture
