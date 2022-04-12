@@ -7,14 +7,14 @@ resource "kubernetes_deployment" "podinfo" {
   spec {
     selector {
       match_labels = {
-        app = "podinfo"
+        app = "podinfo-directory"
       }
     }
 
     template {
       metadata {
         labels = {
-          app = "podinfo"
+          app = "podinfo-directory"
         }
 
         annotations = {
