@@ -1,0 +1,208 @@
+################################################################################
+# the default pipeline runs on commits to the 'main' branch, or pull requests
+# where the 'main' branch is the target
+################################################################################
+kind: pipeline
+name: demo-dev
+
+################################################################################
+# trigger this pipeline on commits to the 'main' branch (or on pull requests
+# where the target branch is 'main') when .tf files are changed beneath the
+# 'dev' directory
+################################################################################
+trigger:
+  branch:
+  - main
+  paths:
+  - dev/*.tf
+
+################################################################################
+# remove this 'platform' section if your CPU is amd64 architecture
+################################################################################
+platform:
+  os: linux
+  arch: arm64
+
+################################################################################
+# limit 'concurrency' to 1 to ensure only one pipeline runs at a time
+################################################################################
+concurrency:
+  limit: 1
+
+################################################################################
+# create a temporary volume that will be used to share the /root/.kube directory
+# between pipeline steps
+################################################################################
+volumes:
+- name: dot-kube
+  temp: {}
+
+################################################################################
+# pipeline steps start here
+################################################################################
+steps:
+
+################################################################################
+# read the 'kube_config' secret which contains the kubernetes config file,
+# base64-encoded, and write it to /root/.kube/config
+################################################################################
+- name: kube config
+  image: alpine:3
+  environment:
+    KUBE_CONFIG:
+      from_secret: kube_config
+  commands:
+  - echo $KUBE_CONFIG | base64 -d > /root/.kube/config
+  volumes:
+  - name: dot-kube
+    path: /root/.kube
+
+################################################################################
+# run 'terraform fmt -check' in the 'dev' directory to ensure consistent
+# formatting, then run 'terraform init' with the necessary parameters for the
+# kubernetes backend
+################################################################################
+- name: terraform init
+  image: hashicorp/terraform:1.1.8
+  commands:
+  - cd $DRONE_WORKSPACE/dev; terraform fmt -check
+  - cd $DRONE_WORKSPACE/dev; terraform init -backend-config="secret_suffix=directory-dev" -backend-config="namespace=demo-dev"
+  volumes:
+  - name: dot-kube
+    path: /root/.kube
+
+################################################################################
+# run 'terraform plan' in the 'dev' directory in pull requests to show what
+# will be changed
+################################################################################
+- name: terraform plan
+  image: hashicorp/terraform:1.1.8
+  commands:
+  - cd $DRONE_WORKSPACE/dev; terraform plan
+  volumes:
+  - name: dot-kube
+    path: /root/.kube
+  when:
+    event:
+    - pull_request
+
+################################################################################
+# run 'terraform apply' in the 'dev' directory (the 'trigger' section ensures
+# that only changes to the 'main' branch will trigger this pipeline, so this
+# step does not need an explicit reference to the 'main' branch)
+################################################################################
+- name: terraform apply
+  image: hashicorp/terraform:1.1.8
+  commands:
+  - cd $DRONE_WORKSPACE/dev; terraform apply -auto-approve
+  volumes:
+  - name: dot-kube
+    path: /root/.kube
+  when:
+    event:
+    - push
+
+---
+################################################################################
+# the default pipeline runs on commits to the 'main' branch, or pull requests
+# where the 'main' branch is the target
+################################################################################
+kind: pipeline
+name: demo-prod
+
+################################################################################
+# trigger this pipeline on commits to the 'main' branch (or on pull requests
+# where the target branch is 'main') when .tf files are changed beneath the
+# 'prod' directory
+################################################################################
+trigger:
+  branch:
+  - main
+  paths:
+  - prod/*.tf
+
+################################################################################
+# remove this 'platform' section if your CPU is amd64 architecture
+################################################################################
+platform:
+  os: linux
+  arch: arm64
+
+################################################################################
+# limit 'concurrency' to 1 to ensure only one pipeline runs at a time
+################################################################################
+concurrency:
+  limit: 1
+
+################################################################################
+# create a temporary volume that will be used to share the /root/.kube directory
+# between pipeline steps
+################################################################################
+volumes:
+- name: dot-kube
+  temp: {}
+
+################################################################################
+# pipeline steps start here
+################################################################################
+steps:
+
+################################################################################
+# read the 'kube_config' secret which contains the kubernetes config file,
+# base64-encoded, and write it to /root/.kube/config
+################################################################################
+- name: kube config
+  image: alpine:3
+  environment:
+    KUBE_CONFIG:
+      from_secret: kube_config
+  commands:
+  - echo $KUBE_CONFIG | base64 -d > /root/.kube/config
+  volumes:
+  - name: dot-kube
+    path: /root/.kube
+
+################################################################################
+# run 'terraform fmt -check' in the 'prod' directory to ensure consistent
+# formatting, then run 'terraform init' with the necessary parameters for the
+# kubernetes backend
+################################################################################
+- name: terraform init
+  image: hashicorp/terraform:1.1.8
+  commands:
+  - cd $DRONE_WORKSPACE/prod; terraform fmt -check
+  - cd $DRONE_WORKSPACE/prod; terraform init -backend-config="secret_suffix=directory-prod" -backend-config="namespace=demo-prod"
+  volumes:
+  - name: dot-kube
+    path: /root/.kube
+
+################################################################################
+# run 'terraform plan' in the 'prod' directory in pull requests to show what
+# will be changed
+################################################################################
+- name: terraform plan
+  image: hashicorp/terraform:1.1.8
+  commands:
+  - cd $DRONE_WORKSPACE/prod; terraform plan
+  volumes:
+  - name: dot-kube
+    path: /root/.kube
+  when:
+    event:
+    - pull_request
+
+################################################################################
+# run 'terraform apply' in the 'prod' directory (the 'trigger' section ensures
+# that only changes to the 'main' branch will trigger this pipeline, so this
+# step does not need an explicit reference to the 'main' branch)
+################################################################################
+- name: terraform apply
+  image: hashicorp/terraform:1.1.8
+  commands:
+  - cd $DRONE_WORKSPACE/prod; terraform apply -auto-approve
+  volumes:
+  - name: dot-kube
+    path: /root/.kube
+  when:
+    event:
+    - push
