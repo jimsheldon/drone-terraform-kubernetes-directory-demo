@@ -1,7 +1,7 @@
 resource "kubernetes_service" "podinfo" {
   metadata {
     name      = "podinfo"
-    namespace = var.namespace
+    namespace = local.namespace
   }
 
   spec {
