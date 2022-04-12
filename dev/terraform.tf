@@ -1,6 +1,6 @@
 terraform {
   backend "kubernetes" {
-    config_path   = "~/.kube/config"
+    config_path = "~/.kube/config"
   }
   required_providers {
     kubernetes = {
